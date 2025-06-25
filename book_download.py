@@ -1,35 +1,73 @@
-import shlex
-import urllib.request
-import urllib.parse
-import os
-import tkinter as tk
-from tkinter import scrolledtext, messagebox
-import subprocess
+"""
+Book downloader module for downloading files using curl commands via GUI.
 
-curl_bash_cmd = """
-curl 'https://r3-ndr-private.ykt.cbern.com.cn/edu_product/esp/assets/e5618f17-c06e-4c4c-944e-0ee8ced25391.pkg/%E4%B9%89%E5%8A%A1%E6%95%99%E8%82%B2%E6%95%99%E7%A7%91%E4%B9%A6%20%E7%89%A9%E7%90%86%20%E5%85%AB%E5%B9%B4%E7%BA%A7%20%E4%B8%8A%E5%86%8C_1725097555765.pdf' \
-  -H 'accept: */*' \
-  -H 'accept-language: zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7' \
-  -H 'if-none-match: "f813272e25506c083e04079e7ba9a042"' \
-  -H 'origin: https://basic.smartedu.cn' \
-  -H 'priority: u=1, i' \
-  -H 'range: bytes=0-65535' \
-  -H 'referer: https://basic.smartedu.cn/' \
-  -H 'sec-ch-ua: "Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24"' \
-  -H 'sec-ch-ua-mobile: ?0' \
-  -H 'sec-ch-ua-platform: "Windows"' \
-  -H 'sec-fetch-dest: empty' \
-  -H 'sec-fetch-mode: cors' \
-  -H 'sec-fetch-site: cross-site' \
-  -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36' \
-  -H 'x-nd-auth: MAC id="7F938B205F876FC398BCDC5BCE419D07B10490E81C34C6651A79321A13F10AAE8BCAA05E3D1DD833B954BF13E4BAF5317924342E0D234CBD",nonce="1750837810649:B91T6955",mac="K2OycMxZonb3jtCMmkIdRFg6jI2Y7BVIR7m65g6mCVA="'
+This module provides a graphical user interface for downloading files by parsing
+curl commands. It extracts the URL and headers from curl commands and downloads
+files using Python's urllib library.
+
+Features:
+- Parse curl commands and extract URLs and headers
+- Download files with proper headers
+- GUI interface for easy input
+- Automatic file explorer opening after download
+- Error handling and user feedback
+
+Example:
+    python book_download.py
+    # Opens GUI where you can paste a curl command and download the file
 """
 
+import os
+import shlex
+import subprocess
+import tkinter as tk
+import urllib.parse
+import urllib.request
+from tkinter import messagebox, scrolledtext
+
+
 def download_file_from_curl(curl_command):
+    """
+    Download a file by parsing a curl command and extracting URL and headers.
+    
+    This function parses a curl command string to extract the target URL and
+    relevant headers, then downloads the file using urllib.request. It excludes
+    certain headers like 'range' and 'if-none-match' that might interfere with
+    the download process.
+    
+    Args:
+        curl_command (str): A complete curl command string, typically copied from
+                           browser developer tools or curl command line.
+    
+    Returns:
+        None: This function doesn't return a value but shows message boxes for
+              user feedback and saves the downloaded file to the current directory.
+    
+    Raises:
+        No explicit exceptions are raised, but error messages are shown via
+        messagebox for various error conditions including:
+        - URL not found in curl command
+        - Network errors during download
+        - File system errors
+        - Invalid URL format
+    
+    Example:
+        >>> curl_cmd = '''curl 'https://example.com/file.pdf' \\
+        ...   -H 'accept: */*' \\
+        ...   -H 'user-agent: Mozilla/5.0...' '''
+        >>> download_file_from_curl(curl_cmd)
+        # Downloads file.pdf to current directory and shows success message
+    
+    Note:
+        - The downloaded file is saved in the current working directory
+        - After successful download, Windows Explorer opens to show the file
+        - Headers 'range' and 'if-none-match' are automatically excluded
+        - The filename is extracted from the URL path
+    """
     # Parse the curl command
     lexer = shlex.shlex(curl_command, posix=True)
     lexer.whitespace_split = True
-    lexer.escape = '' # Disable escape character handling to treat '' as a literal character
+    lexer.escape = ""  # Disable escape character handling to treat '' as a literal character
     parts = list(lexer)
 
     url = None
@@ -38,14 +76,14 @@ def download_file_from_curl(curl_command):
     i = 0
     while i < len(parts):
         part = parts[i]
-        if part.startswith('http'):
+        if part.startswith("http"):
             url = part.strip("'")
-        elif part == '-H':
+        elif part == "-H":
             i += 1
-            header_parts = parts[i].strip("'").split(': ', 1)
+            header_parts = parts[i].strip("'").split(": ", 1)
             if len(header_parts) == 2:
                 key, value = header_parts
-                if key.lower() != 'range' and key.lower() != 'if-none-match':  # Exclude the 'range' and 'if-none-match' headers
+                if key.lower() != "range" and key.lower() != "if-none-match":  # Exclude the 'range' and 'if-none-match' headers
                     headers[key] = value
         i += 1
 
@@ -67,22 +105,57 @@ def download_file_from_curl(curl_command):
                 return
 
             # Save the content to a local file
-            with open(filename, 'wb') as f:
+            with open(filename, "wb") as f:
                 f.write(response.read())
             messagebox.showinfo("Success", f"Downloaded '{filename}' successfully.")
 
             # Open the containing directory and select the downloaded file
             try:
                 file_path = os.path.join(os.getcwd(), filename)
-                subprocess.run(["explorer.exe", "/select,", file_path])
-            except Exception as e:
+                subprocess.run(["explorer.exe", "/select,", file_path], check=False)
+            except (subprocess.SubprocessError, OSError) as e:
                 messagebox.showerror("Error", f"Could not open file explorer: {e}")
     except urllib.error.URLError as e:
         messagebox.showerror("Download Error", f"Error downloading the file: {e.reason}")
-    except Exception as e:
-        messagebox.showerror("Unexpected Error", f"An unexpected error occurred: {e}")
+    except (OSError, IOError) as e:
+        messagebox.showerror("File System Error", f"Error saving the file: {e}")
+    except ValueError as e:
+        messagebox.showerror("Value Error", f"Invalid URL or data format: {e}")
+
 
 def create_gui():
+    """
+    Create and display the main GUI window for the book downloader application.
+
+    This function creates a tkinter-based graphical user interface with:
+    - A label instructing users to paste curl commands
+    - A large text area for inputting curl commands
+    - A download button to initiate the download process
+    - Error handling and user feedback through message boxes
+
+    Args:
+        None: This function takes no parameters.
+
+    Returns:
+        None: This function doesn't return a value but starts the GUI event loop.
+
+    Raises:
+        No explicit exceptions are raised, but the GUI may show error messages
+        for various conditions including:
+        - Empty input when download is attempted
+        - Errors during the download process (handled by download_file_from_curl)
+
+    Example:
+        >>> create_gui()
+        # Opens a window with text area and download button
+
+    Note:
+        - The GUI runs in the main thread and blocks until the window is closed
+        - The window title is set to "Book Downloader"
+        - The text area supports scrolling and word wrapping
+        - The download button triggers the download_file_from_curl function
+        - Input validation is performed before attempting download
+    """
     window = tk.Tk()
     window.title("Book Downloader")
 
@@ -94,6 +167,25 @@ def create_gui():
     txt_area.pack()
 
     def on_download_click():
+        """
+        Handle the download button click event.
+
+        This inner function is called when the download button is clicked.
+        It retrieves the curl command from the text area, validates that it's
+        not empty, and calls download_file_from_curl to perform the download.
+
+        Args:
+            None: This function takes no parameters but accesses the txt_area
+                  widget from the outer scope.
+
+        Returns:
+            None: This function doesn't return a value but may show message
+                  boxes for user feedback.
+
+        Raises:
+            No explicit exceptions are raised, but may show warning messages
+            for empty input or error messages from download_file_from_curl.
+        """
         curl_cmd = txt_area.get(1.0, tk.END).strip()
         if curl_cmd:
             download_file_from_curl(curl_cmd)
@@ -105,6 +197,6 @@ def create_gui():
 
     window.mainloop()
 
+
 if __name__ == "__main__":
     create_gui()
-
