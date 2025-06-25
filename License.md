@@ -1,4 +1,4 @@
-* MIT License *
+# MIT License
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -18,8 +18,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-* ADDITIONAL TERMS: *
+# ADDITIONAL TERMS
 
-1. The code is derived from personal creativity and AI-assisted generation, and does not constitute imitation of any existing commercial code.
+1. The code is derived from personal creativity and AI-assisted generation, and DOES NOT constitute imitation of any existing commercial code.
 
 2. The copyright of downloaded content belongs to the original website. Users are responsible for complying with applicable laws and regulations.
